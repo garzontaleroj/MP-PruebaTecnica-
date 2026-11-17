@@ -1,0 +1,52 @@
+@TaskManagement.Api_HostAddress = http://localhost:5000
+
+POST {{TaskManagement.Api_HostAddress}}/api/users
+Content-Type: application/json
+
+{
+  "name": "Ana Torres",
+  "email": "ana.torres@example.com"
+}
+
+###
+
+GET {{TaskManagement.Api_HostAddress}}/api/users
+Accept: application/json
+
+###
+
+POST {{TaskManagement.Api_HostAddress}}/api/tasks
+Content-Type: application/json
+
+{
+  "title": "Preparar informe mensual",
+  "description": "Consolidar resultados del equipo",
+  "userId": "REPLACE_WITH_USER_ID",
+  "additionalData": {
+    "priority": "High",
+    "estimatedCompletionDate": "2026-12-01T00:00:00Z",
+    "tags": ["reporting", "monthly"],
+    "metadata": {
+      "department": "Operations"
+    }
+  }
+}
+
+###
+
+GET {{TaskManagement.Api_HostAddress}}/api/tasks?status=Pending
+Accept: application/json
+
+###
+
+GET {{TaskManagement.Api_HostAddress}}/api/tasks?userId=REPLACE_WITH_USER_ID
+Accept: application/json
+
+###
+
+PUT {{TaskManagement.Api_HostAddress}}/api/tasks/REPLACE_WITH_TASK_ID/status
+Content-Type: application/json
+
+{
+  "status": "InProgress"
+}

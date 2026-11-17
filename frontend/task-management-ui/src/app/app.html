@@ -1,0 +1,176 @@
+<main class="app-shell">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Taskflow inicio">
+      <span class="brand-mark">T</span>
+      <span>taskflow<span class="brand-dot">.</span></span>
+    </a>
+    <span class="workspace-label">ESPACIO DE TRABAJO <span class="workspace-dot"></span></span>
+  </header>
+
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">OPERACIONES / TAREAS</p>
+      <h1>Gestión de tareas</h1>
+      <p class="subtitle">Organiza el trabajo de tu equipo, un paso a la vez.</p>
+    </div>
+    <div class="heading-note"><span class="sparkle">✳</span> Un equipo alineado llega más lejos.</div>
+  </section>
+
+  <div class="notice error" role="alert" *ngIf="errorMessage()">
+    <span class="notice-icon">!</span>{{ errorMessage() }}
+    <button type="button" class="notice-close" (click)="errorMessage.set('')" aria-label="Cerrar">×</button>
+  </div>
+  <div class="notice success" role="status" *ngIf="successMessage()">
+    <span class="notice-icon">✓</span>{{ successMessage() }}
+    <button type="button" class="notice-close" (click)="successMessage.set('')" aria-label="Cerrar">×</button>
+  </div>
+
+  <section class="workspace-grid">
+    <aside class="sidebar">
+      <div class="panel create-panel">
+        <div class="panel-heading">
+          <div class="heading-icon">＋</div>
+          <div><h2>Nueva tarea</h2><p>Completa los detalles para empezar.</p></div>
+        </div>
+        <form [formGroup]="taskForm" (ngSubmit)="createTask()" novalidate>
+          <label for="title">Título <span class="required">*</span></label>
+          <input id="title" type="text" formControlName="title" placeholder="Ej. Preparar informe mensual">
+          <small class="field-error" *ngIf="taskForm.controls.title.touched && taskForm.controls.title.invalid">
+            Escribe un título de hasta 200 caracteres.
+          </small>
+
+          <label for="description">Descripción <span class="optional">Opcional</span></label>
+          <textarea id="description" rows="3" formControlName="description"
+            placeholder="Añade contexto o instrucciones..."></textarea>
+
+          <label for="assignee">Asignar a <span class="required">*</span></label>
+          <select id="assignee" formControlName="userId">
+            <option value="" disabled>Selecciona un colaborador</option>
+            <option *ngFor="let user of users()" [value]="user.id">{{ user.name }}</option>
+          </select>
+          <small class="field-hint" *ngIf="users().length === 0">Primero agrega un colaborador abajo.</small>
+
+          <div class="form-row">
+            <div>
+              <label for="priority">Prioridad</label>
+              <select id="priority" formControlName="priority">
+                <option value="Low">Baja</option><option value="Medium">Media</option><option value="High">Alta</option>
+              </select>
+            </div>
+            <div>
+              <label for="dueDate">Fecha estimada</label>
+              <input id="dueDate" type="date" formControlName="estimatedCompletionDate">
+            </div>
+          </div>
+
+          <label for="tags">Etiquetas <span class="optional">Separadas por coma</span></label>
+          <input id="tags" type="text" formControlName="tags" placeholder="Diseño, Urgente">
+
+          <button class="primary-button full-width" type="submit"
+            [disabled]="savingTask() || users().length === 0">
+            <span *ngIf="!savingTask()">Crear tarea <span aria-hidden="true">→</span></span>
+            <span *ngIf="savingTask()" class="button-loading">Guardando…</span>
+          </button>
+        </form>
+      </div>
+
+      <details class="panel people-panel">
+        <summary>
+          <span class="people-summary-icon">♙</span>
+          <span><strong>Colaboradores</strong><small>{{ users().length }} en el equipo</small></span>
+          <span class="summary-chevron">⌄</span>
+        </summary>
+        <form [formGroup]="userForm" (ngSubmit)="createUser()" class="user-form" novalidate>
+          <label for="userName">Nombre</label>
+          <input id="userName" type="text" formControlName="name" placeholder="Nombre completo">
+          <label for="userEmail">Correo electrónico</label>
+          <input id="userEmail" type="email" formControlName="email" placeholder="nombre@empresa.com">
+          <button class="secondary-button full-width" type="submit" [disabled]="savingUser()">
+            {{ savingUser() ? 'Guardando…' : 'Agregar colaborador' }}
+          </button>
+        </form>
+      </details>
+
+      <div class="sidebar-tip">
+        <span class="tip-icon">✦</span>
+        <div><strong>Un buen comienzo</strong><p>Las tareas avanzan de pendiente a en progreso y luego a completada.</p></div>
+      </div>
+    </aside>
+
+    <section class="task-area" aria-labelledby="task-list-heading">
+      <div class="list-toolbar">
+        <div>
+          <div class="list-title-row">
+            <h2 id="task-list-heading">Tareas del equipo</h2>
+            <span class="task-count">{{ tasks().length }}</span>
+          </div>
+          <p>Un vistazo a todo lo que está en marcha.</p>
+        </div>
+        <div class="filter-control">
+          <label for="statusFilter">Estado</label>
+          <select id="statusFilter" [value]="statusFilter()" (change)="filterTasks($any($event.target).value)">
+            <option value="">Todos los estados</option>
+            <option value="Pending">Pendiente</option>
+            <option value="InProgress">En progreso</option>
+            <option value="Done">Completada</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="loading-state" *ngIf="loadingTasks()">
+        <span class="spinner"></span><span>Cargando tareas…</span>
+      </div>
+
+      <div class="task-list" *ngIf="!loadingTasks() && tasks().length > 0">
+        <article class="task-card" *ngFor="let task of tasks()">
+          <div class="task-accent" [class]=" 'task-accent ' + task.status.toLowerCase() "></div>
+          <div class="task-card-content">
+            <div class="task-main">
+              <div class="task-title-line">
+                <span class="status-dot" [class]=" 'status-dot ' + task.status.toLowerCase() "></span>
+                <h3>{{ task.title }}</h3>
+              </div>
+              <p class="task-description" *ngIf="task.description">{{ task.description }}</p>
+              <div class="tag-list" *ngIf="metadataTags(task).length > 0">
+                <span class="tag" *ngFor="let tag of metadataTags(task)">{{ tag }}</span>
+              </div>
+              <div class="task-meta">
+                <span class="assignee-avatar">{{ task.userName.charAt(0).toUpperCase() }}</span>
+                <span>{{ task.userName }}</span>
+                <span class="meta-separator">·</span>
+                <span>{{ task.createdAt | date:'d MMM, y' }}</span>
+                <span class="priority" *ngIf="task.additionalData?.priority"
+                  [class]=" 'priority priority-' + task.additionalData?.priority?.toLowerCase()">
+                  <span class="priority-mark">◆</span>{{ task.additionalData?.priority }}
+                </span>
+              </div>
+            </div>
+            <div class="task-actions">
+              <span class="status-badge" [class]=" 'status-badge ' + task.status.toLowerCase()">
+                {{ statusLabel(task.status) }}
+              </span>
+              <select class="status-select" [value]="task.status"
+                [attr.aria-label]="'Cambiar estado de ' + task.title"
+                (change)="changeStatus(task, $any($event.target).value)">
+                <option value="Pending" [disabled]="task.status === 'InProgress' || task.status === 'Done'">Pendiente</option>
+                <option value="InProgress" [disabled]="task.status === 'Done'">En progreso</option>
+                <option value="Done" [disabled]="task.status === 'Pending'">Completada</option>
+              </select>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="empty-state" *ngIf="!loadingTasks() && tasks().length === 0">
+        <div class="empty-illustration"><span>✓</span></div>
+        <h3>{{ statusFilter() ? 'No hay tareas con este estado' : 'Tu lista está despejada' }}</h3>
+        <p>{{ statusFilter() ? 'Prueba otro filtro o crea una tarea nueva.' : 'Crea una tarea para poner en marcha a tu equipo.' }}</p>
+      </div>
+
+      <footer class="list-footer" *ngIf="!loadingTasks()">
+        <span><span class="footer-dot"></span> {{ tasks().length }} {{ tasks().length === 1 ? 'tarea' : 'tareas' }} mostradas</span>
+        <span>Ordenadas por fecha de creación</span>
+      </footer>
+    </section>
+  </section>
+</main>
